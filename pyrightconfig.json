@@ -1,0 +1,17 @@
+{
+    "venvPath": "/Users/malt/Documents/university/year_4/borneo/wira-llm-server",
+    "venv": "venv",
+    "pythonVersion": "3.12",
+    "pythonPlatform": "Darwin",
+    "extraPaths": [
+        "/Users/malt/Documents/university/year_4/borneo/wira-llm-server"
+    ],
+    "executionEnvironments": [
+        {
+            "root": "/Users/malt/Documents/university/year_4/borneo/wira-llm-server",
+            "extraPaths": [
+                "/Users/malt/Documents/university/year_4/borneo/wira-llm-server/venv/lib/python3.12/site-packages"
+            ]
+        }
+    ]
+}
