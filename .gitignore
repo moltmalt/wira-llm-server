@@ -3,3 +3,10 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+.nx/installation
+.nx/cache
+.nx/workspace-data
+
+# dependencies
+node_modules
