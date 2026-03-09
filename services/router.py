@@ -31,7 +31,7 @@ class LLMRouter:
         if self._primary.is_available():
             try:
                 text = self._primary.generate(prompt)
-                return self._truncate(text), self._primary.name
+                return self._truncate(self._clean_json(text)), self._primary.name
             except Exception as exc:
                 logger.warning(
                     "Primary provider (%s) failed, falling back: %s",
@@ -42,10 +42,24 @@ class LLMRouter:
         # Overflow / fallback
         try:
             text = self._fallback.generate(prompt)
-            return self._truncate(text), self._fallback.name
+            return self._truncate(self._clean_json(text)), self._fallback.name
         except Exception as exc:
             logger.error("Fallback provider (%s) also failed: %s", self._fallback.name, exc)
             raise RuntimeError("All LLM providers are unavailable.") from exc
+
+    @staticmethod
+    def _clean_json(text: str) -> str:
+        """Strip markdown code block wrappers (e.g. ```json ... ```)."""
+        text = text.strip()
+        if text.startswith("```"):
+            # Find the end of the first line (e.g. ```json)
+            first_newline = text.find("\n")
+            if first_newline != -1:
+                text = text[first_newline + 1:]
+            # Remove trailing ```
+            if text.endswith("```"):
+                text = text[:-3]
+        return text.strip()
 
     @staticmethod
     def _truncate(text: str) -> str:

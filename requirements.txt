@@ -3,4 +3,5 @@ huggingface-hub>=0.20
 google-genai>=1.0
 python-dotenv>=1.0
 gunicorn>=21.0
+flasgger>=0.9
 pytest>=8.0

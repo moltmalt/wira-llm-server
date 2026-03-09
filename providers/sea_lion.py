@@ -27,9 +27,7 @@ class SeaLionProvider(LLMProvider):
     def name(self) -> str:
         return "sea-lion"
 
-    # ------------------------------------------------------------------
     # Rate-limit tracking
-    # ------------------------------------------------------------------
 
     def _prune_window(self) -> None:
         """Remove timestamps older than 60 s."""
@@ -44,9 +42,7 @@ class SeaLionProvider(LLMProvider):
     def _record_request(self) -> None:
         self._request_timestamps.append(time.monotonic())
 
-    # ------------------------------------------------------------------
     # Generation
-    # ------------------------------------------------------------------
 
     def generate(self, prompt: str) -> str:
         logger.info("SEA-LION: sending request to %s", self._model_id)

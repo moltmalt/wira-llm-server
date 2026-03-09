@@ -3,9 +3,11 @@ WIRA LLM Server — Flask application.
 Exposes ``/api/chat`` (POST) and ``/health`` (GET).
 """
 
+import json
 import logging
 
 from flask import Flask, jsonify, request
+from flasgger import Swagger
 
 from config import Config
 from providers import SeaLionProvider, GeminiProvider
@@ -26,6 +28,14 @@ DISCLAIMER = (
 def create_app() -> Flask:
     """Application factory."""
     app = Flask(__name__)
+
+    app.config["SWAGGER"] = {
+        "title": "WIRA LLM Server",
+        "description": "Hybrid LLM gateway — SEA-LION primary, Gemini fallback.",
+        "version": "1.0.0",
+        "uiversion": 3,
+    }
+    Swagger(app)
 
     # ------------------------------------------------------------------
     # Initialise providers + router
@@ -49,6 +59,59 @@ def create_app() -> Flask:
 
     @app.post("/api/chat")
     def chat():
+        """Send a question to the LLM assistant.
+        ---
+        tags:
+          - Chat
+        parameters:
+          - in: body
+            name: body
+            required: true
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  example: "What should I do during a flood?"
+                  description: "User question (max 500 chars)"
+                context:
+                  type: object
+                  properties:
+                    hazardType:
+                      type: string
+                      example: "flood"
+                    location:
+                      type: string
+                      example: "Sarawak"
+        responses:
+          200:
+            description: Successful response
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    summary:
+                      type: string
+                    steps:
+                      type: array
+                      items:
+                        type: string
+                    safety_reminder:
+                      type: string
+                provider:
+                  type: string
+                  enum: [sea-lion, gemini]
+                disclaimer:
+                  type: string
+          400:
+            description: Invalid request
+          503:
+            description: All providers unavailable
+        """
         body = request.get_json(silent=True) or {}
         question = (body.get("question") or "").strip()
 
@@ -68,22 +131,55 @@ def create_app() -> Flask:
             answer, provider_name = router.generate(prompt)
         except RuntimeError:
             return jsonify({
-                "answer": (
-                    "All language model providers are currently unavailable. "
-                    "Please try again shortly."
-                ),
+                "data": {
+                    "summary": "All language model providers are currently unavailable. Please try again shortly.",
+                    "steps": [],
+                    "safety_reminder": "",
+                },
                 "provider": "none",
                 "disclaimer": DISCLAIMER,
             }), 503
 
+        # Parse structured JSON from the LLM reply
+        try:
+            data = json.loads(answer)
+        except (json.JSONDecodeError, TypeError):
+            # Fallback: wrap raw text if LLM didn't return valid JSON
+            data = {
+                "summary": answer,
+                "steps": [],
+                "safety_reminder": "",
+            }
+
         return jsonify({
-            "answer": answer,
+            "data": data,
             "provider": provider_name,
             "disclaimer": DISCLAIMER,
         })
 
     @app.get("/health")
     def health():
+        """Health check — shows provider availability.
+        ---
+        tags:
+          - System
+        responses:
+          200:
+            description: Server status
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: ok
+                providers:
+                  type: object
+                  properties:
+                    sea_lion:
+                      type: boolean
+                    gemini:
+                      type: boolean
+        """
         return jsonify({
             "status": "ok",
             "providers": {
